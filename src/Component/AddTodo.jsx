@@ -8,42 +8,58 @@ const initialData = {
 }
 const Addtodo = () => {
     const [initialState, setInitial] = useState(initialData)
-    const { todoData, setTodoData } = useContext(TodoAllData)
-    const [Archive,setArchive]=useState([])
+    const { todoData, setTodoData, Archive, setArchive } = useContext(TodoAllData)
+
+
+
     const handleDataAdd = () => {
         let lastTodo = Object.keys(todoData).slice(-1)[0]
-        // console.log(lastTodo)
+
+        console.log(lastTodo)
         if (lastTodo) {
-            lastTodo = Number(lastTodo.slice(-1)[0]) + 1;
+            lastTodo = lastTodo.replace(/[a-zA-Z]/g, '');
+            lastTodo = Number(lastTodo) + 1;
+
         } else {
             lastTodo = 1;
         }
+        console.log(lastTodo);
         if (initialState.todoName === '') {
             toast.error("Please Enter the Title ...", {
                 icon: "🚀"
-              });
-        }else{
+            });
+        } else {
             setTodoData((prev) => ({ ...prev, ["todo" + lastTodo]: { id: (lastTodo), ...initialState } }))
             setInitial(initialData)
         }
-       
+
     }
 
     const handleChange = (e) => {
         setInitial((prev) => ({ ...prev, [e.target.name]: e.target.value }))
     }
 
-    
     const clearData = () => {
         const copyData = structuredClone(todoData)
         let nonCompleted = Object.keys(copyData).filter(data => copyData[data].pending)
         let Completed = Object.keys(copyData).filter(data => !copyData[data].pending)
-        nonCompleted.map(ele => {
-            delete copyData[ele]
+
+        let base = {};
+
+        Completed.map(todo => {
+            base[todo] = copyData[todo];
         })
-        setTodoData(copyData)
-        setArchive(Completed)
-    }   
+
+        setTodoData(base)
+
+        setArchive(prev => [...prev, ...nonCompleted.map(todo => copyData[todo])])
+
+
+
+    }
+
+
+
     return (
         <div className="row">
             <div className="col-sm-6 mx-auto">
@@ -73,8 +89,8 @@ const Addtodo = () => {
                         </div>
                     </div>
                     <div className="card-footer">
-                    <button className="btn btn-success" onClick={handleDataAdd}>ADD</button>
-                    <button className="btn btn-warning float-end"    onClick={clearData}>Clear Complited</button>
+                        <button className="btn btn-success" onClick={handleDataAdd}>ADD</button>
+                        <button className="btn btn-warning float-end" onClick={clearData}>Clear Complited</button>
 
                     </div>
                 </div>
