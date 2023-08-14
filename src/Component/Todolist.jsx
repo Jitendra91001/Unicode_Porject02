@@ -4,17 +4,17 @@ import { TodoAllData } from "./TodoApp";
 import { toast } from "react-toastify";
 import ReactPaginate from 'react-paginate';
 const Todolist = ({ itemsPerPage=4 }) => {
-  const { todoData, setTodoData,Archive, showArchive, setShowArchive} = useContext(TodoAllData);
+  const { todoData, setTodoData,Archive, setArchive, showArchive, setShowArchive} = useContext(TodoAllData);
   const [search, setSearch] = useState("");
   const [priority, setPriority] = useState('');
   const [status, setStatus] = useState('');
   const [itemOffset, setItemOffset] = useState(0);
+  const [unArchive, setUnArchive] = useState([]);
   // const [totalData,setTotalData]=useState(Object.values(todoData))
   let totalData = Object.values(todoData);
 
   // const[currentItems,setCurrentItems]=useState(totalData)
   const endOffset = itemOffset + itemsPerPage;
-  console.log(`Loading items from ${itemOffset} to ${endOffset}`);
   let currentItems = showArchive ? Archive.slice(itemOffset, endOffset) : totalData.slice(itemOffset, endOffset);
   const pageCount = Math.ceil(totalData.length / itemsPerPage);
 
@@ -38,15 +38,33 @@ const Todolist = ({ itemsPerPage=4 }) => {
     }
   };
 
-  const deleteData = (todoKey) => {
-    if (window.confirm("Are You sure...")) {
-      const copyData = structuredClone(todoData);
-      delete copyData[todoKey];
-      setTodoData(copyData);
-      toast.success("Deleted successfuly", {
-        icon: "🚀",
-      });
+  const deleteData = (todoKey, isArchive=false) => {
+
+    console.log(todoKey)
+    if(isArchive){
+
+      if (window.confirm("Are You sure...")) {
+        let copyData = structuredClone(Archive);
+        copyData = copyData.filter(todo=>todo.id!=todoKey)
+
+        setArchive(copyData);
+        toast.success("Deleted successfuly", {
+          icon: "🚀",
+        });
+      }
+
+    }else{
+
+      if (window.confirm("Are You sure...")) {
+        const copyData = structuredClone(todoData);
+        delete copyData[todoKey];
+        setTodoData(copyData);
+        toast.success("Deleted successfuly", {
+          icon: "🚀",
+        });
+      }
     }
+
   };
 
   const handleArchive=()=>{
@@ -69,8 +87,47 @@ const Todolist = ({ itemsPerPage=4 }) => {
     })
 
     currentItems = currentItems.slice(itemOffset, endOffset);
+  }
 
+  const handleSelectUnArchive = (id) =>
+  {
+    if(unArchive.includes(id))
+    {
+      let copyData = [...unArchive];
+      copyData = copyData.filter(existingId=>existingId!=id);
+      setUnArchive(copyData)
+    }
+    else{
+      setUnArchive([...unArchive, id]);
+    }
+  }
 
+  const handleUnArchive = () =>
+  {
+    let allData  = [];
+
+    let updatedArchive = Archive.filter(todo=>
+    {
+      if(unArchive.includes(todo.id))
+      {
+        allData.push(todo);
+        return false;
+      }
+      return true;
+    })
+    let obj = {}
+    allData.map(todo=>
+    {
+      let base = {
+        ...todo
+      }
+      
+      obj['todo'+todo.id] = base;
+    })
+
+    setTodoData((prev)=>({...prev, ...obj}));
+
+    setArchive(updatedArchive);
 
   }
 
@@ -120,9 +177,13 @@ const Todolist = ({ itemsPerPage=4 }) => {
                   </div>
                 </div>
                 <div className="col-sm-3 d-flex" style={{transform:"translateY(23px)"}}>
-                  <div className="input-group-list">
-                  <button className="btn btn-success ms-4" onClick={handleArchive}>Archive {`(${Archive.length})`}</button>
-
+                  <div className="input-group-list d-flex justify-content-around align-items-center w-100">
+                  <button className="btn btn-success align-self-start" onClick={handleArchive}>Archive {`(${Archive.length})`}</button>
+                  {
+                    showArchive && <button className="btn btn-success align-self-start" onClick={handleUnArchive}>unArchive{`(${unArchive.length})`}</button>
+                    
+                    
+                  }
                   {/* <button className="btn btn-danger ms-4">Selected Status</button> */}
                   </div>
                 </div>
@@ -131,10 +192,11 @@ const Todolist = ({ itemsPerPage=4 }) => {
             <div className="card-body">
               <div className="row mt-2">
                 <div className="col-sm-6 w-100">
-                  <p> { showArchive && 'Archive'} </p>
+                  <p> { showArchive && 'Archive'}</p>
                   <table className="table table-striped table-bordred text-center">
                     <thead>
                       <tr>
+                      <th>{showArchive?'select':null}</th>
                         <th>Serial No</th>
                         <th>Title</th>
                         <th>{showArchive ?null:'Status'}</th>
@@ -147,6 +209,15 @@ const Todolist = ({ itemsPerPage=4 }) => {
                       {currentItems.length != 0 ? (
                         currentItems.map((ele) => (
                           <tr>
+                          <td>
+                            {
+                              showArchive ?  <input
+                              type="checkbox"
+                              className="h-25 w-25"
+                              onClick={()=>handleSelectUnArchive(ele.id)}
+                            />:null
+                            }
+                          </td>
                             <td>{ele.id}</td>
                             <td>
                               <span title={"Title :" + ele.todoName} className={`${Color[ele.priority]}`}>
@@ -155,7 +226,9 @@ const Todolist = ({ itemsPerPage=4 }) => {
                             </td>
                             <td>
                              {
-                              showArchive ? null : <input
+                              showArchive ?
+                             null
+                              : <input
                               type="checkbox"
                               className="h-25 w-25"
                               checked={ele.pending}
@@ -174,12 +247,21 @@ const Todolist = ({ itemsPerPage=4 }) => {
                             <td>
 
                               {
+
+                                showArchive ?
+                                <DeleteIcon
+                                  style={{ cursur: "pointer" }}
+                                  className="float-end text-danger"
+                                  onClick={() => deleteData(ele.id, true)}
+                                />
+                                :
                                 (ele.pending === false) ? <DeleteIcon
                                   style={{ cursur: "pointer" }}
                                   className="float-end text-danger"
                                   onClick={() => deleteData("todo" + ele.id)}
                                 /> : null
                               }
+
                             </td>
                           </tr>
                         ))
